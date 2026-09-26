@@ -1,0 +1,56 @@
+#pragma once
+
+namespace ScanDuty
+{
+// An active discovery holds the controller, and the kernel's passive accept list scan is the only
+// thing that catches a bonded BLE HID device when it wakes, so the discovery has to leave gaps.
+inline constexpr int scanWindowMs = 2000;
+
+// Wide enough for the accept list scan to catch a waking mouse, short enough that pods in the case
+// still report battery on the timescale a bar widget is read at.
+inline constexpr int idleWindowMs = 8000;
+
+// Bonded LE mice reconnect right after boot with a short advert burst, and one that lands inside a
+// scan window is filed as a scan result instead of connecting, so the first scan waits.
+inline constexpr int bootDelayMs = 45000;
+
+enum class Phase
+{
+    Stopped,
+    Scanning,
+    Idle
+};
+
+// Callers save and restore "is the scan on" across control link recovery, so that answer has to
+// survive a window boundary instead of flapping with the discovery agent underneath it.
+class Cycle
+{
+public:
+    void request() { m_phase = Phase::Scanning; }
+    void cancel() { m_phase = Phase::Stopped; }
+
+    Phase phase() const { return m_phase; }
+    bool isRequested() const { return m_phase != Phase::Stopped; }
+
+    bool windowFinished()
+    {
+        if (m_phase != Phase::Scanning) {
+            return false;
+        }
+        m_phase = Phase::Idle;
+        return true;
+    }
+
+    bool idleFinished()
+    {
+        if (m_phase != Phase::Idle) {
+            return false;
+        }
+        m_phase = Phase::Scanning;
+        return true;
+    }
+
+private:
+    Phase m_phase = Phase::Stopped;
+};
+}

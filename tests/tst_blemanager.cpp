@@ -70,6 +70,7 @@ private slots:
     void unparseableFrameIsDropped();
     void realAirPodsFrameIsParsed();
     void podsBatteryKeepsLeftAndRightApart();
+    void discoveryIsNotContinuous();
 };
 
 void TestBleManager::unparseableFrameIsDropped_data()
@@ -116,6 +117,16 @@ void TestBleManager::podsBatteryKeepsLeftAndRightApart()
     QCOMPARE(parseFrame(withRightPodPrimary(unequalPods), &parsed), 1);
     QCOMPARE(parsed.leftPodBattery, 80);
     QCOMPARE(parsed.rightPodBattery, 20);
+}
+
+void TestBleManager::discoveryIsNotContinuous()
+{
+    BleManager manager;
+    auto *agent = manager.findChild<QBluetoothDeviceDiscoveryAgent *>();
+    QVERIFY(agent);
+
+    // A timeout of 0 holds BlueZ discovery open, which blocks bonded LE mice from reconnecting.
+    QVERIFY(agent->lowEnergyDiscoveryTimeout() > 0);
 }
 
 QTEST_GUILESS_MAIN(TestBleManager)

@@ -1595,7 +1595,11 @@ public:
 
         m_deviceInfo->loadFromSettings(*m_settings);
         // Unreachable with the pods already connected: the constructor returns before this.
-        m_bleManager->startScan();
+        QTimer::singleShot(ScanDuty::bootDelayMs, this, [this]() {
+            // Pods that connected during the delay keep discovery off, as stopBleScanWhileConnected does.
+            if (!areAirpodsConnected())
+                m_bleManager->startScan();
+        });
     }
 
     // Null engine is the headless run, where there is no window to open and nothing to say about it.
