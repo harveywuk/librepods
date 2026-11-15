@@ -73,6 +73,9 @@ public:
     void startScan();
     void stopScan();
     bool isScanning() const;
+    // Off: startScan() is a no-op. The control link, battery and modes still work while connected;
+    // only the BLE-advertisement extras while disconnected (case lid, case battery) are lost.
+    void setScanEnabled(bool enabled);
 
 private slots:
     void onDeviceDiscovered(const QBluetoothDeviceInfo &info);
@@ -88,6 +91,7 @@ private:
     // that start/stop/isScan would dereference. Real assignment
     // happens in BleManager::BleManager() via parented `new`.
     QBluetoothDeviceDiscoveryAgent *discoveryAgent = nullptr;
+    bool m_scanEnabled = true;
 };
 
 #endif // BLEMANAGER_H
