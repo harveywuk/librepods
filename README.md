@@ -42,6 +42,16 @@ Dependencies (Arch): `cmake`, `ninja`, `pkgconf`, `qt6-connectivity`,
 
 `~/.local` is the prefix the unit expects (`%h/.local/bin/librepods`).
 
+### `--no-ble-scan`
+
+While the AirPods are disconnected the daemon runs BLE discovery continuously
+to read case-lid and case-battery advertisements. Every nearby BLE device then
+wakes `bluetoothd`, D-Bus, the daemon and any audio service watching BlueZ
+(WirePlumber took ~17% of a core on a laptop). `--no-ble-scan` turns the scan
+off; connection, battery, listening modes and ear detection keep working while
+connected. Add it to `ExecStart` in the unit if you don't need the
+disconnected-state case info.
+
 ## License
 
 GPL-3.0, inherited from upstream. The original librepods is by **Kavish Devar**;

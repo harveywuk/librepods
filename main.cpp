@@ -69,7 +69,7 @@ class AirPodsTrayApp : public QObject {
     Q_PROPERTY(bool hearingAidEnabled READ hearingAidEnabled WRITE setHearingAidEnabled NOTIFY hearingAidEnabledChanged)
 
 public:
-    AirPodsTrayApp(bool debugMode, bool hideOnStart, bool headless, QQmlApplicationEngine *parent = nullptr)
+    AirPodsTrayApp(bool debugMode, bool hideOnStart, bool headless, bool bleScan, QQmlApplicationEngine *parent = nullptr)
         : QObject(parent), debugMode(debugMode), m_settings(new QSettings("AirPodsTrayApp", "AirPodsTrayApp"))
         , m_autoStartManager(new AutoStartManager(this)), m_hideOnStart(hideOnStart), parent(parent)
         , m_deviceInfo(new DeviceInfo(this)), m_bleManager(new BleManager(this))
@@ -77,6 +77,10 @@ public:
     {
         QLoggingCategory::setFilterRules(QString("openpods.debug=%1").arg(debugMode ? "true" : "false"));
         LOG_INFO("Initializing OpenPods");
+        // Before initializeBluetooth() below, which would otherwise start the first scan.
+        m_bleManager->setScanEnabled(bleScan);
+        if (!bleScan)
+            LOG_INFO("BLE scanning disabled (--no-ble-scan)");
         restrictSettingsAccess();
 
         m_notifier->setEnabled(loadNotificationsEnabled());
@@ -1821,6 +1825,7 @@ int main(int argc, char *argv[]) {
     bool debugMode = false;
     bool hideOnStart = false;
     bool headless = false;
+    bool bleScan = true;
     for (int i = 1; i < argc; ++i) {
         if (QString(argv[i]) == "--debug") {
             debugMode = true;
@@ -1831,6 +1836,11 @@ int main(int argc, char *argv[]) {
         // --hide still builds the whole GUI so the window can be opened later; --headless never can.
         if (QString(argv[i]) == "--headless") {
             headless = true;
+        }
+        // The disconnected-state BLE scan never ends (onScanFinished restarts it) and every nearby
+        // advertisement wakes bluetoothd, dbus, this daemon and audio services watching BlueZ.
+        if (QString(argv[i]) == "--no-ble-scan") {
+            bleScan = false;
         }
     }
 
@@ -1988,7 +1998,7 @@ int main(int argc, char *argv[]) {
     }
     QQmlApplicationEngine *engine = engineOwner.get();
 
-    AirPodsTrayApp *trayApp = new AirPodsTrayApp(debugMode, hideOnStart, headless, engine);
+    AirPodsTrayApp *trayApp = new AirPodsTrayApp(debugMode, hideOnStart, headless, bleScan, engine);
     // Headless has no engine to be parented to, and the destructor logs the final reliability summary.
     if (headless) {
         trayApp->setParent(&app);

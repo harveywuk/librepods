@@ -110,8 +110,17 @@ BleManager::~BleManager()
     // redundant and ran before Qt's own child cleanup pass. Now empty.
 }
 
+void BleManager::setScanEnabled(bool enabled)
+{
+    m_scanEnabled = enabled;
+    if (!enabled)
+        stopScan();
+}
+
 void BleManager::startScan()
 {
+    if (!m_scanEnabled)
+        return;
     LOG_DEBUG("Starting BLE scan...");
     discoveryAgent->start(QBluetoothDeviceDiscoveryAgent::LowEnergyMethod);
 }
